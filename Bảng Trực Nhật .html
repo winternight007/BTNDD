@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bảng Trực Nhật- Auto Setup</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        :root { --neon-green: #00ff88; --neon-blue: #00d4ff; --bg-dark: #0d1117; }
+        body { background: var(--bg-dark); color: #e6edf3; font-family: 'Segoe UI', Arial, sans-serif; text-align: center; margin: 0; padding: 10px; }
+
+        /* Vùng chụp ảnh */
+        #captureArea { background: var(--bg-dark); padding: 20px; border-radius: 15px; display: inline-block; min-width: 320px; }
+        h2 { color: var(--neon-blue); margin: 0 0 10px 0; font-size: 1.4rem; text-transform: uppercase; }
+        
+        table { border-collapse: separate; border-spacing: 6px; margin: auto; }
+        th { color: var(--neon-green); font-size: 0.8rem; }
+        td {
+            border: 1px solid #30363d; padding: 10px 5px; width: 85px; height: 65px;
+            border-radius: 8px; background: #161b22; font-size: 0.8rem; vertical-align: top;
+            transition: 0.2s; word-wrap: break-word; cursor: pointer;
+        }
+        .focus { border-color: var(--neon-green) !important; box-shadow: 0 0 12px var(--neon-green); background: #1c2128; }
+
+        .controls { display: flex; justify-content: center; gap: 8px; margin: 15px 0; flex-wrap: wrap; }
+        button { padding: 10px 15px; border-radius: 8px; border: 1px solid var(--neon-blue); background: transparent; color: var(--neon-blue); cursor: pointer; font-weight: bold; }
+        .btn-img { border-color: #f1c40f; color: #f1c40f; }
+        .btn-settings { border-color: #a29bfe; color: #a29bfe; }
+        .btn-reset { border-color: #ff4444; color: #ff4444; }
+
+        .list-container { background: #161b22; padding: 15px; border-radius: 12px; max-width: 600px; margin: auto; }
+        .name-list, .class-list { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 10px; }
+        .student, .name { padding: 8px 12px; border: 1px solid #30363d; border-radius: 10px; background: #21262d; font-size: 13px; cursor: pointer; transition: 0.2s; }
+        .student:hover, .name:hover { border-color: var(--neon-blue); }
+        .selected { opacity: 0.2; text-decoration: line-through; pointer-events: none; }
+
+        /* Modal Cài đặt */
+        #settingsModal {
+            display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);
+        }
+        .modal-content {
+            background: #161b22; margin: 5% auto; padding: 25px; border-radius: 20px;
+            width: 90%; max-width: 500px; border: 1px solid var(--neon-blue); box-shadow: 0 0 30px rgba(0, 212, 255, 0.2);
+        }
+        textarea { width: 100%; height: 80px; background: #0d1117; color: white; border: 1px solid #30363d; padding: 10px; border-radius: 8px; margin-top: 5px; box-sizing: border-box; resize: none; }
+        input { width: 100%; background: #0d1117; color: white; border: 1px solid #30363d; padding: 10px; border-radius: 8px; box-sizing: border-box; }
+        
+        .footer-tag { font-size: 10px; color: #484f58; margin-top: 20px; text-transform: uppercase; letter-spacing: 1px; }
+
+        @media (max-width: 500px) { td { width: 60px; font-size: 0.7rem; } }
+        .btn-copy { border-color: #00ff88; color: #00ff88; }
+    </style>
+</head>
+<body>
+
+    <div id="captureArea">
+        <h2 id="titleWeb"> BẢNG TRỰC NHẬT </h2>
+        <table>
+            <tr><th>Thứ 2</th><th>Thứ 3</th><th>Thứ 4</th><th>Thứ 5</th><th>Thứ 6</th></tr>
+            <tr>
+                <td id="thu2" onclick="clearCell('thu2')"></td>
+                <td id="thu3" onclick="clearCell('thu3')"></td>
+                <td id="thu4" onclick="clearCell('thu4')"></td>
+                <td id="thu5" onclick="clearCell('thu5')"></td>
+                <td id="thu6" onclick="clearCell('thu6')"></td>
+            </tr>
+        </table>
+    </div>
+
+ <div class="controls">
+    <button onclick="moveFocus(-1)">◀</button>
+    <button onclick="moveFocus(1)">▶</button>
+    <button class="btn-copy" onclick="copyImage()">📋 COPY ẢNH</button>
+    <button class="btn-img" onclick="exportImage()">💾 TẢI ẢNH</button>
+    <button class="btn-settings" onclick="toggleSettings(true)">⚙️ CÀI ĐẶT</button>
+    <button class="btn-reset" onclick="resetTable()">🧹 RESET</button>
+</div>
+
+    <div class="list-container">
+        <p style="margin:0; color: var(--neon-blue); font-weight: bold; font-size: 0.9rem;">📍 CHỌN BÀN (Tự chuyển ngày)</p>
+        <div class="name-list" id="banList"></div>
+        <hr style="border: 0.5px solid #30363d; margin: 15px 0;">
+        <p style="margin:0; color: var(--neon-blue); font-weight: bold; font-size: 0.9rem;">👥 CHỌN THÀNH VIÊN</p>
+        <div class="class-list" id="hocSinhList"></div>
+        <div class="footer-tag">Được Làm Bởi Hải 12A - khoá 44</div>
+    </div>
+
+    <div id="settingsModal">
+        <div class="modal-content">
+            <h3 style="color: var(--neon-blue); margin: 0 0 15px 0;">⚙️ THIẾT LẬP LỚP HỌC</h3>
+            
+            <div style="text-align: left; margin-bottom: 10px;">
+                <label style="font-size: 13px; color: var(--neon-green);">Tên tiêu đề (Lớp/Tuần):</label>
+                <input type="text" id="inputTitle" placeholder="Ví dụ: TRỰC NHẬT LỚP 12A1">
+            </div>
+
+            <div style="text-align: left; margin-bottom: 10px;">
+                <label style="font-size: 13px; color: var(--neon-green);">Danh sách Bàn (cách bằng dấu phẩy):</label>
+                <textarea id="inputBan" placeholder="Bàn 1, Bàn 2, Bàn 3..."></textarea>
+            </div>
+
+            <div style="text-align: left; margin-bottom: 15px;">
+                <label style="font-size: 13px; color: var(--neon-green);">Danh sách Thành viên:</label>
+                <textarea id="inputHS" placeholder="Nguyễn Văn A, Trần Thị B..."></textarea>
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+                <button style="flex: 2; background: var(--neon-blue); color: black;" onclick="saveSettings()">✅ LƯU & BẮT ĐẦU</button>
+                <button style="flex: 1; border-color: #8b949e; color: #8b949e;" onclick="toggleSettings(false)">ĐÓNG</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const days = ["thu2", "thu3", "thu4", "thu5", "thu6"];
+        let currentIndex = 0;
+
+        function init() {
+            // Kiểm tra xem đã có dữ liệu cài đặt chưa
+            const savedConfig = localStorage.getItem("classConfig");
+            
+            if (!savedConfig) {
+                // Lần đầu mở File: Tự động hiện Popup
+                toggleSettings(true);
+                // Gợi ý sẵn một vài tên để người dùng biết cách điền
+                document.getElementById('inputTitle').value = " BẢNG TRỰC NHẬT ";
+            } else {
+                // Đã có dữ liệu: Load ngay lập tức, không hiện Popup
+                const config = JSON.parse(savedConfig);
+                document.getElementById('titleWeb').innerText = config.title;
+                renderList('banList', config.ban, 'name');
+                renderList('hocSinhList', config.hocsinh, 'student');
+            }
+            
+            loadDutyData();
+            updateFocus();
+        }
+
+        // Hàm render danh sách nút bấm từ chuỗi nhập vào
+        function renderList(id, dataStr, className) {
+            const container = document.getElementById(id);
+            container.innerHTML = "";
+            if (!dataStr) return;
+            const items = dataStr.split(/[,\n]/).map(i => i.trim()).filter(i => i !== "");
+            items.forEach(item => {
+                container.innerHTML += `<span class="${className}" onclick="selectItem(this, '${className}')">${item}</span>`;
+            });
+        }
+
+        function toggleSettings(show) {
+            document.getElementById('settingsModal').style.display = show ? "block" : "none";
+            if(show) {
+                const config = JSON.parse(localStorage.getItem("classConfig")) || { title: " BẢNG TRỰC NHẬT ", ban: "", hocsinh: "" };
+                document.getElementById('inputTitle').value = config.title;
+                document.getElementById('inputBan').value = config.ban;
+                document.getElementById('inputHS').value = config.hocsinh;
+            }
+        }
+
+        function saveSettings() {
+            const config = {
+                title: document.getElementById('inputTitle').value || " BẢNG TRỰC NHẬT ",
+                ban: document.getElementById('inputBan').value,
+                hocsinh: document.getElementById('inputHS').value
+            };
+            // Lưu vào localStorage - Đây là "trí nhớ" của trình duyệt
+            localStorage.setItem("classConfig", JSON.stringify(config));
+            
+            // Reload để áp dụng giao diện mới và đóng Popup
+            location.reload();
+        }
+
+        function selectItem(el, type) {
+            const cell = document.getElementById(days[currentIndex]);
+            const currentContent = cell.innerText.trim();
+            cell.innerText = currentContent ? currentContent + ", " + el.innerText : el.innerText;
+            el.classList.add("selected");
+            saveDutyData();
+            if(type === 'name') moveFocus(1); // Auto chuyển ngày nếu chọn Bàn
+        }
+
+        function clearCell(id) {
+            const cell = document.getElementById(id);
+            const names = cell.innerText.split(", ");
+            document.querySelectorAll(".name, .student").forEach(el => {
+                if (names.includes(el.innerText)) el.classList.remove("selected");
+            });
+            cell.innerText = "";
+            saveDutyData();
+        }
+
+        function updateFocus() { days.forEach((id, i) => document.getElementById(id).classList.toggle("focus", i === currentIndex)); }
+        function moveFocus(dir) { currentIndex = (currentIndex + dir + days.length) % days.length; updateFocus(); }
+
+        function saveDutyData() {
+            const data = {};
+            days.forEach(id => data[id] = document.getElementById(id).innerText);
+            localStorage.setItem("dutyDataFinal", JSON.stringify(data));
+        }
+
+        function loadDutyData() {
+            const saved = JSON.parse(localStorage.getItem("dutyDataFinal"));
+            if (saved) {
+                days.forEach(id => {
+                    document.getElementById(id).innerText = saved[id];
+                    const names = saved[id].split(", ");
+                    document.querySelectorAll(".name, .student").forEach(el => { if (names.includes(el.innerText)) el.classList.add("selected"); });
+                });
+            }
+        }
+
+        function exportImage() {
+            const area = document.getElementById('captureArea');
+            html2canvas(area, { backgroundColor: "#0d1117", scale: 3, logging: false }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = 'lich-truc-nhat.png';
+                link.href = canvas.toDataURL("image/png");
+                link.click();
+            });
+        }
+        async function copyImage() {
+    const area = document.getElementById('captureArea');
+    const btn = document.querySelector('.btn-copy');
+    const originalText = btn.innerText;
+
+    try {
+        // Chụp ảnh vùng bảng trực nhật
+        const canvas = await html2canvas(area, { 
+            backgroundColor: "#0d1117", 
+            scale: 2, 
+            logging: false 
+        });
+
+        // Chuyển thành Blob để đẩy vào Clipboard
+        canvas.toBlob(async (blob) => {
+            try {
+                const item = new ClipboardItem({ "image/png": blob });
+                await navigator.clipboard.write([item]);
+                
+                // Hiệu ứng phản hồi cho người dùng
+                btn.innerText = "✅ ĐÃ COPY!";
+                btn.style.background = "rgba(0, 255, 136, 0.1)";
+                
+                setTimeout(() => {
+                    btn.innerText = originalText;
+                    btn.style.background = "transparent";
+                }, 2000);
+            } catch (err) {
+                alert("Lỗi: Trình duyệt của bạn không cho phép Copy ảnh trực tiếp. Hãy dùng nút 'Tải ảnh' nhé!");
+            }
+        });
+    } catch (err) {
+        console.error(err);
+        alert("Có lỗi khi xử lý ảnh!");
+    }
+}
+
+        function resetTable() {
+            days.forEach(id => document.getElementById(id).innerText = "");
+            document.querySelectorAll(".selected").forEach(el => el.classList.remove("selected"));
+            localStorage.removeItem("dutyDataFinal");
+            currentIndex = 0;
+            updateFocus();
+        }
+
+        // Khởi chạy hệ thống
+        init();
+    </script>
+</body>
+</html>
